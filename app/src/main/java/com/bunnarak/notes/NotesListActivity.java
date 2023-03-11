@@ -1,6 +1,7 @@
 package com.bunnarak.notes;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -9,6 +10,7 @@ import android.util.Log;
 
 import com.bunnarak.notes.adapters.NotesRecyclerAdapter;
 import com.bunnarak.notes.models.Note;
+import com.bunnarak.notes.util.VerticalSpacingItemDecorator;
 
 import java.util.ArrayList;
 
@@ -30,6 +32,9 @@ public class NotesListActivity extends AppCompatActivity {
         mRecyclerView = findViewById(R.id.recyclerView);
         initRecyclerView();
         insertFakeNotes();
+
+        setSupportActionBar((Toolbar)findViewById(R.id.notes_toolbar));
+        setTitle("Notes");
     }
 
     private void insertFakeNotes() {
@@ -46,6 +51,8 @@ public class NotesListActivity extends AppCompatActivity {
     private void initRecyclerView() {
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(linearLayoutManager);
+        VerticalSpacingItemDecorator itemDecorator = new VerticalSpacingItemDecorator(10);
+        mRecyclerView.addItemDecoration(itemDecorator);
         mNoteRecyclerAdapter = new NotesRecyclerAdapter(mNotes);
         mRecyclerView.setAdapter(mNoteRecyclerAdapter);
     }
