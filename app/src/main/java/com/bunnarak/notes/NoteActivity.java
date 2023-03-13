@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
 import android.graphics.Paint;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -17,12 +19,15 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.bunnarak.notes.models.Note;
+import com.bunnarak.notes.persistence.NoteRepository;
+import com.bunnarak.notes.util.Utility;
 
 public class NoteActivity extends AppCompatActivity implements
         View.OnTouchListener,
         GestureDetector.OnGestureListener,
         GestureDetector.OnDoubleTapListener,
-        View.OnClickListener
+        View.OnClickListener,
+        TextWatcher
 {
 
     private static final String TAG = "NoteActivity";
@@ -39,8 +44,10 @@ public class NoteActivity extends AppCompatActivity implements
     //vars
     private boolean mIsNewNote;
     private Note mInitialNote;
+    private Note mFinalNote;
     private GestureDetector mGestureDetector;
     private int mMode;
+    private NoteRepository mNoteRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +60,8 @@ public class NoteActivity extends AppCompatActivity implements
         mCheckContainer = findViewById(R.id.checkmark_container);
         mBackArrow = findViewById(R.id.toolbar_back_arrow);
         mCheck = findViewById(R.id.toolbar_checkmark);
+
+        mNoteRepository = new NoteRepository(this);
 
         if (getIncomingIntent()) {
             //if this is a new note, go to Edit Mode
@@ -69,7 +78,13 @@ public class NoteActivity extends AppCompatActivity implements
     private boolean getIncomingIntent() {
         if (getIntent().hasExtra("selected_note")) {
             mInitialNote = getIntent().getParcelableExtra("selected_note");
-            Log.d(TAG, "getIncomingIntent: " + mInitialNote.toString());
+
+            mFinalNote = new Note();
+            mFinalNote.setTitle(mInitialNote.getTitle());
+            mFinalNote.setContent(mInitialNote.getContent());
+            mFinalNote.setTimeStamp(mInitialNote.getTimeStamp());
+            mFinalNote.setId(mInitialNote.getId());
+
             mMode = EDIT_MODE_DISABLED;
             mIsNewNote = false;
             return false;
@@ -78,6 +93,20 @@ public class NoteActivity extends AppCompatActivity implements
         mIsNewNote = true;
         return true;
     }
+
+    private void saveChanges() {
+        if (mIsNewNote) {
+            saveNewNote();
+        } else {
+
+        }
+    }
+
+    private void updateNote() {
+        mNoteRepository.updateNote(mFinalNote);
+    }
+
+    private void saveNewNote() { mNoteRepository.insertNoteTask(mFinalNote); }
 
     private void enableEditMode() {
         mBackArrowContainer.setVisibility(View.GONE);
@@ -101,6 +130,21 @@ public class NoteActivity extends AppCompatActivity implements
         mMode = EDIT_MODE_DISABLED;
 
         disableContentInteraction();
+
+        String temp = mLinedEditText.getText().toString();
+        temp = temp.replace("\n", "");
+        temp = temp.replace(" ", "");
+        if (temp.length() > 0) {
+            mFinalNote.setTitle(mEditTitle.getText().toString());
+            mFinalNote.setContent(mLinedEditText.getText().toString());
+            String timestamp = Utility.getCurrentTimeStamp();
+            mFinalNote.setTimeStamp(timestamp);
+
+            if (!mFinalNote.getContent().equals(mInitialNote.getContent())
+            || !mFinalNote.getTitle().equals(mFinalNote.getTitle())) {
+                saveChanges();
+            }
+        }
     }
 
     private void setListeners() {
@@ -109,6 +153,7 @@ public class NoteActivity extends AppCompatActivity implements
         mViewTitle.setOnClickListener(this);
         mCheck.setOnClickListener(this);
         mBackArrow.setOnClickListener(this);
+        mEditTitle.addTextChangedListener(this);
     }
 
     private void setNoteProperties() {
@@ -120,6 +165,11 @@ public class NoteActivity extends AppCompatActivity implements
     private void setNewNoteProperties() {
         mViewTitle.setText("Note Title");
         mEditTitle.setText("Note Title");
+
+        mInitialNote = new Note();
+        mFinalNote = new Note();
+        mInitialNote.setTitle("Note Title");
+        mFinalNote.setTitle("Note Title");
     }
 
     private void disableContentInteraction() {
@@ -243,5 +293,20 @@ public class NoteActivity extends AppCompatActivity implements
         if (mMode == EDIT_MODE_ENABLED) {
             enableEditMode();
         }
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+        mViewTitle.setText(charSequence.toString());
+    }
+
+    @Override
+    public void afterTextChanged(Editable editable) {
+
     }
 }

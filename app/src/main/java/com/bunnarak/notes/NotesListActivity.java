@@ -3,6 +3,7 @@ package com.bunnarak.notes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -14,10 +15,12 @@ import android.view.View;
 
 import com.bunnarak.notes.adapters.NotesRecyclerAdapter;
 import com.bunnarak.notes.models.Note;
+import com.bunnarak.notes.persistence.NoteRepository;
 import com.bunnarak.notes.util.VerticalSpacingItemDecorator;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class NotesListActivity extends AppCompatActivity implements
         NotesRecyclerAdapter.OnNoteListener,
@@ -31,20 +34,38 @@ public class NotesListActivity extends AppCompatActivity implements
     //vars
     private ArrayList<Note> mNotes = new ArrayList<>();
     private NotesRecyclerAdapter mNoteRecyclerAdapter;
+    private NoteRepository mNoteRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-      findViewById(R.id.fab).setOnClickListener(this);
+        findViewById(R.id.fab).setOnClickListener(this);
 
+        mNoteRepository = new NoteRepository(this);
         mRecyclerView = findViewById(R.id.recyclerView);
         initRecyclerView();
-        insertFakeNotes();
+        retrieveNotes();
+        //insertFakeNotes();
 
         setSupportActionBar((Toolbar)findViewById(R.id.notes_toolbar));
         setTitle("Notes");
+    }
+
+    private void retrieveNotes() {
+        mNoteRepository.retrieveNotesTask().observe(this, new Observer<List<Note>>() {
+            @Override
+            public void onChanged(List<Note> notes) {
+                if (mNotes.size() > 0) {
+                    mNotes.clear();
+                }
+                if (notes != null) {
+                    mNotes.addAll((notes));
+                }
+                mNoteRecyclerAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     private void insertFakeNotes() {
@@ -85,6 +106,8 @@ public class NotesListActivity extends AppCompatActivity implements
     private void deleteNote(Note note) {
         mNotes.remove(note);
         mNoteRecyclerAdapter.notifyDataSetChanged();
+
+        mNoteRepository.deleteNote(note);
     }
 
     private ItemTouchHelper.SimpleCallback itemTouchHelperCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
